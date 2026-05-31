@@ -9,582 +9,739 @@
   <meta property="og:description" content="テキスト → Markdown 自動整形。Zenn/note対応・行末スペース削除・1クリックコピー。">
   <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    /* ===== Design System: Mode B The Row ===== */
+    /* ===== Design Tokens ===== */
     :root {
-      --row-paper:   #F5F4F0;
-      --row-ink:     #1C1C1C;
-      --row-tan:     #C8B89E;
-      --row-stone:   #6B6B66;
-      --row-coffee:  #8B6F47;
-      --primary:     #6C63FF;
-      --success:     #00D4AA;
-      --error:       #FF5252;
-      --warning:     #FBA32A;
-      --font-sans:   'Noto Sans JP', sans-serif;
-      --font-mono:   'JetBrains Mono', monospace;
-      --space-xs:  4px;
-      --space-sm:  8px;
-      --space-md:  16px;
-      --space-lg:  24px;
-      --space-xl:  32px;
-      --space-2xl: 48px;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: var(--font-sans);
-      background: var(--row-paper);
-      color: var(--row-ink);
-      min-height: 100vh;
-      font-size: 16px;
-      line-height: 1.8;
+      --paper:   #F7F6F2;
+      --ink:     #1A1A1A;
+      --coffee:  #8B6F47;
+      --stone:   #6B6B66;
+      --tan:     #D4C9B8;
+      --tan-lt:  #EAE4DA;
+      --white:   #FFFFFF;
+      --success: #2E9E6B;
+      --primary: #4F46E5;
+
+      --font-sans: 'Noto Sans JP', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --header-h: 52px;
+      --toolbar-h: 40px;
+      --statusbar-h: 32px;
     }
 
-    /* ===== PRO UPGRADE 2026-05-31 ===== */
-    /* Header */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--paper);
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ===== Header ===== */
     header {
-      border-bottom: 1px solid var(--row-tan);
-      padding: 0 48px;
-      height: 56px;
+      height: var(--header-h);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: var(--space-md);
-      background: var(--row-paper);
+      padding: 0 24px;
+      background: var(--white);
+      border-bottom: 1px solid var(--tan);
+      flex-shrink: 0;
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 20;
     }
+
     .header-left {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
+
     .header-accent {
       width: 2px;
-      height: 20px;
-      background: var(--row-coffee);
+      height: 18px;
+      background: var(--coffee);
+      border-radius: 1px;
       flex-shrink: 0;
     }
-    header h1 {
-      font-size: 15px;
+
+    .header-title {
+      font-size: 14px;
       font-weight: 700;
-      letter-spacing: 0.06em;
-      color: var(--row-ink);
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      line-height: 1;
     }
-    header .subtitle {
+
+    .header-sub {
       font-family: var(--font-mono);
       font-size: 9px;
-      letter-spacing: 0.16em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: var(--row-stone);
-      opacity: 0.7;
-    }
-    .header-badge {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--row-stone);
-      border: 1px solid var(--row-tan);
-      padding: 3px 10px;
-      border-radius: 100px;
+      color: var(--stone);
+      margin-top: 3px;
     }
 
-    /* Main */
-    main {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 56px 48px 64px;
-    }
-
-    /* Tab group — border-radius統一 */
-    .tab-group { border-radius: 4px !important; border: 1px solid var(--row-tan) !important; }
-    .tab-btn { border-radius: 0 !important; }
-
-    /* Controls — ルール線でセクション区切り */
-    .controls {
-      padding-bottom: var(--space-lg);
-      border-bottom: 1px solid var(--row-tan);
-      margin-bottom: var(--space-lg);
-    }
-
-    /* Pane label — ワイドトラッキング */
-    .pane-label {
-      font-family: var(--font-mono) !important;
-      font-size: 10px !important;
-      font-weight: 500 !important;
-      letter-spacing: 0.18em !important;
-      text-transform: uppercase !important;
-      color: var(--row-stone) !important;
-    }
-
-    /* Footer */
-    footer {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: space-between !important;
-      padding: 24px 48px !important;
-      border-top: 1px solid var(--row-tan) !important;
-      font-family: var(--font-mono) !important;
-      font-size: 9px !important;
-      letter-spacing: 0.14em !important;
-      text-transform: uppercase !important;
-      color: var(--row-stone) !important;
-      text-align: left !important;
-    }
-
-    /* Top controls */
-    .controls {
+    .header-right {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: var(--space-sm);
-      margin-bottom: var(--space-lg);
+      gap: 8px;
     }
 
-    /* Tab group: Markdown raw / Preview */
-    .tab-group {
-      display: flex;
-      background: white;
-      border: 1.5px solid var(--row-tan);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .tab-btn {
-      padding: 0 var(--space-md);
-      height: 40px;
+    .btn-header {
+      height: 32px;
+      padding: 0 14px;
       border: none;
-      background: transparent;
+      border-radius: 6px;
       font-family: var(--font-sans);
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
-      color: var(--row-stone);
+      letter-spacing: 0.04em;
       cursor: pointer;
-      letter-spacing: 0.05em;
-      transition: all 0.15s;
-    }
-    .tab-btn.active {
-      background: var(--row-ink);
-      color: white;
-    }
-    .tab-btn:not(.active):hover { background: var(--row-paper); }
-
-    /* Action buttons */
-    .btn-format {
-      height: 40px;
-      padding: 0 var(--space-lg);
-      background: var(--row-ink);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-family: var(--font-sans);
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-format:hover { background: var(--row-coffee); transform: translateY(-1px); }
-
-    .btn-ghost {
-      height: 40px;
-      padding: 0 var(--space-md);
-      background: transparent;
-      color: var(--row-stone);
-      border: 1.5px solid var(--row-tan);
-      border-radius: 8px;
-      font-family: var(--font-sans);
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-ghost:hover { border-color: var(--row-ink); color: var(--row-ink); }
-
-    /* Options */
-    .options-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-lg);
-      margin-bottom: var(--space-xl);
-      align-items: center;
-    }
-    .opt-check {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 13px;
-      color: var(--row-stone);
-      cursor: pointer;
+      transition: all 0.15s;
     }
-    .opt-check input[type="checkbox"] { cursor: pointer; accent-color: var(--primary); }
-    .opt-label {
-      font-size: 13px;
-      color: var(--row-stone);
+
+    .btn-copy-header {
+      background: var(--ink);
+      color: var(--white);
+    }
+    .btn-copy-header:hover { background: var(--coffee); }
+    .btn-copy-header.copied { background: var(--success); }
+
+    .btn-dl-header {
+      background: transparent;
+      color: var(--stone);
+      border: 1px solid var(--tan);
+    }
+    .btn-dl-header:hover { border-color: var(--ink); color: var(--ink); }
+
+    /* ===== Options bar ===== */
+    .options-bar {
       display: flex;
       align-items: center;
-      gap: var(--space-sm);
+      gap: 16px;
+      padding: 0 24px;
+      height: 38px;
+      background: var(--white);
+      border-bottom: 1px solid var(--tan-lt);
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .opt-check {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--stone);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .opt-check input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--coffee);
+      width: 13px;
+      height: 13px;
+    }
+
+    .opt-sep {
+      width: 1px;
+      height: 16px;
+      background: var(--tan);
+      flex-shrink: 0;
+    }
+
+    .opt-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--stone);
+      white-space: nowrap;
     }
     .opt-label select {
-      height: 32px;
-      padding: 0 var(--space-sm);
-      border: 1.5px solid var(--row-tan);
-      border-radius: 6px;
+      height: 26px;
+      padding: 0 6px;
+      border: 1px solid var(--tan);
+      border-radius: 4px;
       font-family: var(--font-sans);
-      font-size: 13px;
-      background: white;
-      color: var(--row-ink);
+      font-size: 12px;
+      background: var(--white);
+      color: var(--ink);
+      cursor: pointer;
     }
 
-    /* Editor grid */
-    .editor-grid {
+    /* ===== Main workspace ===== */
+    .workspace {
+      flex: 1;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: var(--space-xl);
-    }
-    @media (max-width: 720px) {
-      .editor-grid { grid-template-columns: 1fr; }
-      main { padding: var(--space-xl) var(--space-md); }
-      header { padding: var(--space-md); }
+      overflow: hidden;
+      min-height: 0;
     }
 
-    .pane-label {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--row-stone);
-      margin-bottom: var(--space-sm);
+    /* ===== Panel base ===== */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--white);
+    }
+
+    .panel-left {
+      border-right: 1px solid var(--tan);
+    }
+
+    /* ===== Panel header ===== */
+    .panel-header {
       display: flex;
       align-items: center;
-      gap: var(--space-sm);
+      justify-content: space-between;
+      height: var(--toolbar-h);
+      padding: 0 14px 0 16px;
+      border-bottom: 1px solid var(--tan-lt);
+      background: var(--paper);
+      flex-shrink: 0;
     }
-    .pane-badge {
-      background: rgba(108,99,255,0.1);
-      color: var(--primary);
-      padding: 2px 8px;
+
+    .panel-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--stone);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      padding: 2px 7px;
       border-radius: 100px;
+      background: rgba(139,111,71,0.1);
+      color: var(--coffee);
+      font-weight: 500;
+    }
+
+    /* ===== Format button ===== */
+    .btn-format-sm {
+      height: 26px;
+      padding: 0 12px;
+      background: var(--ink);
+      color: var(--white);
+      border: none;
+      border-radius: 5px;
+      font-family: var(--font-sans);
       font-size: 11px;
       font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-format-sm:hover { background: var(--coffee); }
+
+    /* ===== Insert toolbar ===== */
+    .insert-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 0 10px;
+      height: 34px;
+      border-bottom: 1px solid var(--tan-lt);
+      background: #FAFAF7;
+      flex-shrink: 0;
+      overflow-x: auto;
     }
 
-    /* Input textarea */
-    .input-pane {
-      border: 2px dashed var(--row-tan);
-      border-radius: 12px;
-      background: white;
-      transition: border-color 0.2s;
+    .ins-btn {
+      height: 24px;
+      padding: 0 8px;
+      background: var(--white);
+      border: 1px solid var(--tan);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--stone);
+      cursor: pointer;
+      transition: all 0.1s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .input-pane:focus-within { border-color: var(--primary); }
-    .input-pane textarea {
+    .ins-btn:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+    .ins-sep {
+      width: 1px;
+      height: 16px;
+      background: var(--tan);
+      flex-shrink: 0;
+      margin: 0 2px;
+    }
+
+    /* ===== Textarea ===== */
+    .input-area {
+      flex: 1;
       width: 100%;
-      min-height: 400px;
-      padding: var(--space-md);
-      background: transparent;
+      padding: 14px 16px;
+      background: var(--white);
       border: none;
       outline: none;
-      font-family: var(--font-sans);
-      font-size: 15px;
-      line-height: 1.9;
-      color: var(--row-ink);
-      resize: vertical;
-    }
-    .input-pane textarea::placeholder { color: var(--row-tan); }
-
-    /* Output panel */
-    .output-panel {
-      border: 1.5px solid var(--row-tan);
-      border-radius: 12px;
-      background: white;
-      min-height: 400px;
-      overflow: hidden;
-    }
-    /* Raw Markdown view */
-    .output-raw {
-      display: block;
-      padding: var(--space-md);
       font-family: var(--font-mono);
       font-size: 13px;
-      line-height: 1.8;
-      color: var(--row-ink);
+      line-height: 1.75;
+      color: var(--ink);
+      resize: none;
+      overflow-y: auto;
+    }
+    .input-area::placeholder { color: var(--tan); }
+
+    /* ===== Status bar (bottom of left panel) ===== */
+    .panel-statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: var(--statusbar-h);
+      padding: 0 14px;
+      border-top: 1px solid var(--tan-lt);
+      background: var(--paper);
+      flex-shrink: 0;
+    }
+
+    .statusbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-msg {
+      font-size: 11px;
+      color: var(--stone);
+    }
+    .status-msg.ok   { color: var(--success); font-weight: 600; }
+    .status-msg.err  { color: #D94F4F; font-weight: 600; }
+
+    .statusbar-right {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--stone);
+      letter-spacing: 0.06em;
+    }
+
+    /* ===== Output tabs ===== */
+    .tab-row {
+      display: flex;
+      border-bottom: 1px solid var(--tan-lt);
+      flex-shrink: 0;
+      background: var(--paper);
+    }
+
+    .tab-btn {
+      height: var(--toolbar-h);
+      padding: 0 20px;
+      border: none;
+      background: transparent;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--stone);
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      position: relative;
+      transition: color 0.15s;
+    }
+
+    .tab-btn.active {
+      color: var(--ink);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--coffee);
+    }
+
+    .tab-btn:not(.active):hover { color: var(--ink); }
+
+    /* ===== Output area ===== */
+    .output-body {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .output-raw {
+      display: none;
+      width: 100%;
+      height: 100%;
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--ink);
       white-space: pre-wrap;
       word-break: break-word;
-      min-height: 400px;
+      overflow-y: auto;
+      background: var(--white);
     }
-    /* Preview view */
+    .output-raw.active { display: block; }
+
+    .output-raw .placeholder {
+      color: var(--tan);
+      font-style: italic;
+    }
+
     .output-preview {
       display: none;
-      padding: var(--space-lg);
-      min-height: 400px;
+      width: 100%;
+      height: 100%;
+      padding: 18px 20px;
+      overflow-y: auto;
+      background: var(--white);
     }
-    .output-preview.active, .output-raw.active { display: block; }
-    /* Markdown render styles */
+    .output-preview.active { display: block; }
+
+    /* Preview Markdown styles */
     .output-preview h1 {
-      font-size: 28px; font-weight: 700; margin: 24px 0 12px;
-      border-bottom: 2px solid var(--row-tan); padding-bottom: 8px;
+      font-size: 22px; font-weight: 700; margin: 20px 0 10px;
+      border-bottom: 2px solid var(--tan); padding-bottom: 6px;
+      line-height: 1.4;
     }
     .output-preview h2 {
-      font-size: 22px; font-weight: 700; margin: 20px 0 10px;
-      border-bottom: 1px solid var(--row-tan); padding-bottom: 6px;
+      font-size: 18px; font-weight: 700; margin: 18px 0 8px;
+      border-bottom: 1px solid var(--tan-lt); padding-bottom: 4px;
+      line-height: 1.4;
     }
-    .output-preview h3 { font-size: 18px; font-weight: 700; margin: 16px 0 8px; }
-    .output-preview h4 { font-size: 16px; font-weight: 600; margin: 12px 0 6px; }
-    .output-preview p { margin: 8px 0; line-height: 1.9; }
-    .output-preview ul, .output-preview ol { margin: 8px 0 8px 24px; }
-    .output-preview li { margin: 4px 0; line-height: 1.8; }
+    .output-preview h2::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      background: var(--coffee);
+      border-radius: 1px;
+      margin-right: 8px;
+      vertical-align: middle;
+      position: relative;
+      top: -1px;
+    }
+    .output-preview h3 {
+      font-size: 15px; font-weight: 700; margin: 14px 0 6px;
+      color: var(--coffee);
+    }
+    .output-preview h4 { font-size: 14px; font-weight: 600; margin: 10px 0 5px; }
+    .output-preview p  { margin: 6px 0; line-height: 1.85; font-size: 14px; }
+    .output-preview ul, .output-preview ol {
+      margin: 6px 0 6px 20px; font-size: 14px;
+    }
+    .output-preview li { margin: 3px 0; line-height: 1.75; }
     .output-preview code {
-      background: var(--row-paper);
-      border: 1px solid var(--row-tan);
-      border-radius: 4px;
-      padding: 1px 6px;
+      background: var(--paper);
+      border: 1px solid var(--tan-lt);
+      border-radius: 3px;
+      padding: 1px 5px;
       font-family: var(--font-mono);
-      font-size: 13px;
+      font-size: 12px;
     }
     .output-preview pre {
-      background: var(--row-paper);
-      border: 1px solid var(--row-tan);
-      border-radius: 8px;
-      padding: var(--space-md);
+      background: #282C34;
+      border-radius: 6px;
+      padding: 14px 16px;
       overflow-x: auto;
-      margin: 12px 0;
+      margin: 10px 0;
     }
-    .output-preview pre code { background: none; border: none; padding: 0; }
+    .output-preview pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #ABB2BF;
+      font-size: 12px;
+    }
     .output-preview blockquote {
-      border-left: 3px solid var(--row-tan);
-      margin: 12px 0;
-      padding: 4px 16px;
-      color: var(--row-stone);
+      border-left: 3px solid var(--coffee);
+      margin: 10px 0;
+      padding: 4px 14px;
+      color: var(--stone);
+      font-size: 14px;
+      background: rgba(139,111,71,0.04);
+      border-radius: 0 4px 4px 0;
     }
     .output-preview hr {
-      border: none; border-top: 1px solid var(--row-tan); margin: 20px 0;
+      border: none; border-top: 1px solid var(--tan); margin: 16px 0;
     }
     .output-preview strong { font-weight: 700; }
     .output-preview em { font-style: italic; }
     .output-preview a { color: var(--primary); text-decoration: underline; }
 
-    /* Action row */
-    .pane-actions {
+    /* ===== Output statusbar ===== */
+    .output-statusbar {
       display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-sm);
-      margin-top: var(--space-sm);
+      align-items: center;
+      justify-content: space-between;
+      height: var(--statusbar-h);
+      padding: 0 14px;
+      border-top: 1px solid var(--tan-lt);
+      background: var(--paper);
+      flex-shrink: 0;
     }
-    .btn-action {
-      height: 36px;
-      padding: 0 var(--space-md);
-      background: white;
-      color: var(--row-stone);
-      border: 1.5px solid var(--row-tan);
-      border-radius: 8px;
-      font-family: var(--font-sans);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
+
+    .stat-chips {
       display: flex;
       align-items: center;
       gap: 6px;
     }
-    .btn-action:hover { border-color: var(--primary); color: var(--primary); }
-    .btn-action.copied { background: var(--success); color: white; border-color: var(--success); }
 
-    /* Insert toolbar */
-    .insert-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-xs);
-      padding: var(--space-sm) var(--space-md);
-      border-top: 1px solid var(--row-paper);
-      background: #fafaf8;
-      border-radius: 0 0 10px 10px;
-    }
-    .ins-btn {
-      height: 30px;
-      padding: 0 10px;
-      background: white;
-      border: 1px solid var(--row-tan);
-      border-radius: 6px;
+    .stat-chip {
       font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--row-stone);
+      font-size: 10px;
+      color: var(--stone);
+      letter-spacing: 0.06em;
+    }
+
+    .chip-sep { color: var(--tan); }
+
+    /* ===== Footer ===== */
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 36px;
+      border-top: 1px solid var(--tan);
+      background: var(--white);
+      flex-shrink: 0;
+    }
+
+    .footer-left {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--stone);
+    }
+
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-footer {
+      height: 24px;
+      padding: 0 10px;
+      border: 1px solid var(--tan);
+      border-radius: 4px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      color: var(--stone);
+      background: var(--white);
       cursor: pointer;
       transition: all 0.12s;
     }
-    .ins-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+    .btn-footer:hover { border-color: var(--ink); color: var(--ink); }
 
-    /* Status */
-    .status-bar {
-      margin-top: var(--space-md);
-      min-height: 26px;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      flex-wrap: wrap;
-    }
-    .status-ok   { color: var(--success); font-weight: 600; }
-    .status-err  { color: var(--error);   font-weight: 600; }
-    .status-info { color: var(--row-stone); }
-
-    /* Stats chips */
-    .stat-chip {
-      display: inline-flex;
-      align-items: center;
-      height: 22px;
-      padding: 0 8px;
-      background: rgba(108,99,255,0.08);
-      color: var(--primary);
-      border-radius: 100px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    /* Diff highlight */
-    .diff-section {
-      margin-top: var(--space-2xl);
-      border-top: 1px solid var(--row-tan);
-      padding-top: var(--space-xl);
-    }
-    .diff-section h2 {
-      font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--row-stone); margin-bottom: var(--space-md);
-    }
-
-    footer {
-      text-align: center;
-      padding: var(--space-2xl) var(--space-xl) var(--space-xl);
-      font-size: 12px;
-      color: var(--row-tan);
-      letter-spacing: 0.05em;
+    /* ===== Mobile ===== */
+    @media (max-width: 720px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+      .panel-left {
+        border-right: none;
+        border-bottom: 1px solid var(--tan);
+      }
+      .options-bar {
+        height: auto;
+        padding: 8px 16px;
+        gap: 10px;
+      }
+      header { padding: 0 16px; }
+      footer  { padding: 0 16px; }
+      .header-sub { display: none; }
     }
   </style>
 </head>
 <body>
 
+<!-- ===== Header ===== -->
 <header>
   <div class="header-left">
     <div class="header-accent"></div>
     <div>
-      <h1>Markdown Formatter</h1>
-      <div class="subtitle">Zenn · note · GitHub — Auto Format</div>
+      <div class="header-title">Markdown 整形ツール</div>
+      <div class="header-sub">テキスト &rarr; Markdown &middot; Zenn &middot; note &middot; GitHub</div>
     </div>
   </div>
-  <span class="header-badge">by techio-code</span>
+  <div class="header-right">
+    <button class="btn-header btn-copy-header" id="btnCopyHeader">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.5"/></svg>
+      コピー
+    </button>
+    <button class="btn-header btn-dl-header" id="btnDownload">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v8m0 0l-3-3m3 3l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      .md 保存
+    </button>
+  </div>
 </header>
 
-<main>
-  <!-- Controls -->
-  <div class="controls">
-    <button class="btn-format" id="btnFormat">整形する</button>
-    <div class="tab-group">
+<!-- ===== Options bar ===== -->
+<div class="options-bar">
+  <label class="opt-check">
+    <input type="checkbox" id="chkTrimTrail" checked>
+    行末スペース削除
+  </label>
+  <label class="opt-check">
+    <input type="checkbox" id="chkHeading" checked>
+    見出し自動検出
+  </label>
+  <label class="opt-check">
+    <input type="checkbox" id="chkBullet" checked>
+    箇条書き変換
+  </label>
+  <label class="opt-check">
+    <input type="checkbox" id="chkBlankLines" checked>
+    連続空行圧縮
+  </label>
+  <label class="opt-check">
+    <input type="checkbox" id="chkAutoLink" checked>
+    URL自動リンク
+  </label>
+  <div class="opt-sep"></div>
+  <label class="opt-label">
+    見出しレベル:
+    <select id="selHeadingLevel">
+      <option value="2">## (H2)</option>
+      <option value="1"># (H1)</option>
+      <option value="3">### (H3)</option>
+    </select>
+  </label>
+  <div class="opt-sep"></div>
+  <button class="btn-footer" id="btnExample">サンプル</button>
+  <button class="btn-footer" id="btnClear">クリア</button>
+</div>
+
+<!-- ===== Workspace ===== -->
+<div class="workspace">
+
+  <!-- Left Panel: Input -->
+  <div class="panel panel-left">
+    <div class="panel-header">
+      <div class="panel-label">
+        入力
+        <span class="panel-badge">プレーンテキスト</span>
+      </div>
+      <button class="btn-format-sm" id="btnFormat">整形する</button>
+    </div>
+
+    <!-- Insert toolbar -->
+    <div class="insert-toolbar">
+      <button class="ins-btn" data-insert="# ">H1</button>
+      <button class="ins-btn" data-insert="## ">H2</button>
+      <button class="ins-btn" data-insert="### ">H3</button>
+      <div class="ins-sep"></div>
+      <button class="ins-btn" data-insert="**太字**"><b>B</b></button>
+      <button class="ins-btn" data-insert="*斜体*"><i>I</i></button>
+      <button class="ins-btn" data-insert="~~取消線~~"><s>S</s></button>
+      <div class="ins-sep"></div>
+      <button class="ins-btn" data-insert="- ">- リスト</button>
+      <button class="ins-btn" data-insert="1. ">1. 番号</button>
+      <div class="ins-sep"></div>
+      <button class="ins-btn" data-insert="> ">引用</button>
+      <button class="ins-btn" data-insert="`コード`">`code`</button>
+      <button class="ins-btn" data-insert="```\n\n```">```block</button>
+      <div class="ins-sep"></div>
+      <button class="ins-btn" data-insert="[テキスト](URL)">[link]</button>
+      <button class="ins-btn" data-insert="---">---</button>
+    </div>
+
+    <textarea
+      class="input-area"
+      id="inputArea"
+      placeholder="ここにテキストをペースト&#10;&#10;例：&#10;1. はじめに&#10;・概要説明&#10;・背景と目的&#10;2. 本題&#10;　内容をここに書く"
+    ></textarea>
+
+    <div class="panel-statusbar">
+      <div class="statusbar-left">
+        <button class="btn-footer" id="btnPaste">ペースト</button>
+        <span class="status-msg" id="statusMsg">テキストを入力して「整形する」を押してください</span>
+      </div>
+      <div class="statusbar-right" id="inputStats"></div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Output -->
+  <div class="panel">
+    <div class="tab-row">
       <button class="tab-btn active" data-view="raw">Markdown</button>
       <button class="tab-btn" data-view="preview">プレビュー</button>
     </div>
-    <button class="btn-ghost" id="btnClear">クリア</button>
-    <button class="btn-ghost" id="btnExample">サンプルを入力</button>
-  </div>
 
-  <!-- Options -->
-  <div class="options-row">
-    <label class="opt-check">
-      <input type="checkbox" id="chkTrimTrail" checked>
-      行末スペース削除（Zenn 改行バグ対策）
-    </label>
-    <label class="opt-check">
-      <input type="checkbox" id="chkHeading" checked>
-      見出し自動検出（番号付き行 → ## に変換）
-    </label>
-    <label class="opt-check">
-      <input type="checkbox" id="chkBullet" checked>
-      箇条書き自動検出（・ □ ▶ → - に変換）
-    </label>
-    <label class="opt-check">
-      <input type="checkbox" id="chkBlankLines" checked>
-      連続空行を1行に圧縮
-    </label>
-    <label class="opt-check">
-      <input type="checkbox" id="chkAutoLink" checked>
-      URLを自動リンク化
-    </label>
-    <label class="opt-label">
-      見出しレベル:
-      <select id="selHeadingLevel">
-        <option value="2">## (H2) デフォルト</option>
-        <option value="1"># (H1)</option>
-        <option value="3">### (H3)</option>
-      </select>
-    </label>
-  </div>
-
-  <!-- Editor grid -->
-  <div class="editor-grid">
-    <!-- Input -->
-    <div>
-      <div class="pane-label">入力 <span class="pane-badge">プレーンテキスト</span></div>
-      <div class="input-pane">
-        <textarea id="inputArea" placeholder="ここにテキストをペースト&#10;&#10;例：&#10;1. はじめに&#10;・概要説明&#10;・背景と目的&#10;2. 本題&#10;　内容をここに書く"></textarea>
-        <div class="insert-toolbar">
-          <button class="ins-btn" data-insert="# ">H1</button>
-          <button class="ins-btn" data-insert="## ">H2</button>
-          <button class="ins-btn" data-insert="### ">H3</button>
-          <button class="ins-btn" data-insert="- ">- リスト</button>
-          <button class="ins-btn" data-insert="1. ">1. 番号</button>
-          <button class="ins-btn" data-insert="**太字**">**B**</button>
-          <button class="ins-btn" data-insert="*斜体*">*I*</button>
-          <button class="ins-btn" data-insert="`コード`">`code`</button>
-          <button class="ins-btn" data-insert="```\n\n```">```block</button>
-          <button class="ins-btn" data-insert="> ">引用</button>
-          <button class="ins-btn" data-insert="---">---</button>
-          <button class="ins-btn" data-insert="[テキスト](URL)">[link]</button>
-        </div>
+    <div class="output-body">
+      <div class="output-raw active" id="outputRaw">
+        <span class="placeholder">整形結果がここに表示されます</span>
       </div>
-      <div class="pane-actions">
-        <button class="btn-action" id="btnPaste">&#128203; ペースト</button>
-      </div>
+      <div class="output-preview" id="outputPreview"></div>
     </div>
 
-    <!-- Output -->
-    <div>
-      <div class="pane-label">出力 <span class="pane-badge" id="viewBadge">Markdown</span></div>
-      <div class="output-panel">
-        <pre class="output-raw active" id="outputRaw">整形結果がここに表示されます</pre>
-        <div class="output-preview" id="outputPreview"></div>
+    <div class="output-statusbar">
+      <div class="stat-chips" id="statChips">
+        <span class="stat-chip" id="statLines">—</span>
+        <span class="chip-sep">·</span>
+        <span class="stat-chip" id="statChars">—</span>
+        <span class="chip-sep">·</span>
+        <span class="stat-chip" id="statHeadings">見出し 0</span>
+        <span class="chip-sep">·</span>
+        <span class="stat-chip" id="statBullets">箇条書き 0</span>
       </div>
-      <div class="pane-actions">
-        <button class="btn-action" id="btnCopy">&#128203; コピー</button>
-        <button class="btn-action" id="btnCopyHtml">&#128203; HTML コピー</button>
-        <button class="btn-action" id="btnDownload">&#11015; .md 保存</button>
-      </div>
+      <button class="btn-footer" id="btnCopyHtml">HTML コピー</button>
     </div>
   </div>
 
-  <!-- Status -->
-  <div class="status-bar" id="statusBar">
-    <span class="status-info">テキストを入力して「整形する」を押してください（リアルタイム自動整形あり）</span>
-  </div>
-</main>
+</div>
 
-<footer>techio-code — Markdown Formatter v1.0</footer>
+<!-- ===== Footer ===== -->
+<footer>
+  <div class="footer-left">techio-code — Markdown Formatter v2.0</div>
+  <div class="footer-right">
+    <span style="font-family:var(--font-mono);font-size:9px;color:var(--stone);letter-spacing:0.1em;text-transform:uppercase;">Zenn · note · GitHub 対応</span>
+  </div>
+</footer>
 
 <script>
   // ===== State =====
   let currentView = 'raw';
   let lastFormatted = '';
 
-  // ===== View tab =====
+  // ===== Tab switch =====
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentView = btn.dataset.view;
-      document.getElementById('viewBadge').textContent = currentView === 'raw' ? 'Markdown' : 'Preview';
       updateOutputView();
     });
   });
 
   function updateOutputView() {
-    const raw = document.getElementById('outputRaw');
+    const raw  = document.getElementById('outputRaw');
     const prev = document.getElementById('outputPreview');
     if (currentView === 'raw') {
       raw.classList.add('active');
@@ -610,32 +767,20 @@
     let lines = input.split(/\r\n|\r|\n/);
 
     lines = lines.map(line => {
-      // 1. 行末スペース削除
       if (trimTrail) line = line.trimEnd();
 
-      // 2. 全角スペース・タブをインデント検出用に扱う
-      // (先頭の全角スペースは除去してインデントとして扱う)
       const leadFull = line.match(/^[　\s]+/);
-      if (leadFull) {
-        line = line.trimStart();
-      }
+      if (leadFull) line = line.trimStart();
 
-      // 3. 箇条書き変換: ・ □ ◆ ▶ ▷ ➡ ✅ ● ○ など → -
       if (doBullet) {
         line = line.replace(/^[・●○□◆◇▶▷➡✅✔︎✓➤▸▹►]+\s*/, '- ');
-        // 全角ダッシュ・ハイフン → -
         line = line.replace(/^[－ーｰ—–]\s+/, '- ');
       }
 
-      // 4. 番号付き見出し検出: "1. 〇〇" "（1）〇〇" "１. 〇〇" 行 → ## 見出し
       if (doHeading) {
-        // 数字ドット形式: "1. text" (まだリスト変換されていないもの)
-        // 括弧形式: (1) text / （1）text
-        // 番号のみ行: "1 text" (空白で始まっていない・数字+スペース+文字)
-        const numDot = line.match(/^(\d+)[.．。]\s+(.+)/);
+        const numDot   = line.match(/^(\d+)[.．。]\s+(.+)/);
         const numParen = line.match(/^[（(](\d+)[）)]\s*(.+)/);
-        // 全角数字
-        const zenNum = line.match(/^[１２３４５６７８９０]+[.．。、]\s*(.+)/);
+        const zenNum   = line.match(/^[１２３４５６７８９０]+[.．。、]\s*(.+)/);
 
         if (numDot && !line.startsWith('- ')) {
           line = `${headLevel} ${numDot[2]}`;
@@ -646,7 +791,6 @@
         }
       }
 
-      // 5. URLを自動リンク化（既に []() 形式でないもの）
       if (doLink) {
         line = line.replace(
           /(?<!\()(?<!\[)(https?:\/\/[^\s\)]+)/g,
@@ -657,23 +801,21 @@
       return line;
     });
 
-    // 6. 連続空行を1行に圧縮
     if (doBlank) {
       const compressed = [];
       let blankCount = 0;
-      for (const line of lines) {
-        if (line.trim() === '') {
+      for (const ln of lines) {
+        if (ln.trim() === '') {
           blankCount++;
           if (blankCount === 1) compressed.push('');
         } else {
           blankCount = 0;
-          compressed.push(line);
+          compressed.push(ln);
         }
       }
       lines = compressed;
     }
 
-    // 7. 先頭・末尾の空行除去
     while (lines.length > 0 && lines[0].trim() === '') lines.shift();
     while (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
 
@@ -684,84 +826,95 @@
     const input = document.getElementById('inputArea').value;
     if (!input.trim()) {
       setStatus('info', 'テキストを入力してください');
+      clearStats();
       return;
     }
     const result = formatMarkdown(input);
     lastFormatted = result;
-    document.getElementById('outputRaw').textContent = result;
+
+    // Update raw output
+    const rawEl = document.getElementById('outputRaw');
+    rawEl.textContent = result;
+    rawEl.classList.remove('placeholder');
+
     if (currentView === 'preview') {
       document.getElementById('outputPreview').innerHTML = renderMarkdown(result);
     }
 
     // Stats
-    const lines = result.split('\n').length;
-    const chars = result.replace(/\n/g, '').length;
-    const headings = (result.match(/^#{1,6} /gm) || []).length;
-    const bullets  = (result.match(/^- /gm) || []).length;
-    setStatus('ok',
-      `整形完了 ` +
-      `<span class="stat-chip">${lines} 行</span> ` +
-      `<span class="stat-chip">${chars} 字</span> ` +
-      `<span class="stat-chip">見出し ${headings}</span> ` +
-      `<span class="stat-chip">箇条書き ${bullets}</span>`
-    );
+    const lineCount    = result.split('\n').length;
+    const charCount    = result.replace(/\n/g, '').length;
+    const headingCount = (result.match(/^#{1,6} /gm) || []).length;
+    const bulletCount  = (result.match(/^- /gm) || []).length;
+
+    document.getElementById('statLines').textContent    = `${lineCount} 行`;
+    document.getElementById('statChars').textContent    = `${charCount} 字`;
+    document.getElementById('statHeadings').textContent = `見出し ${headingCount}`;
+    document.getElementById('statBullets').textContent  = `箇条書き ${bulletCount}`;
+
+    setStatus('ok', `整形完了`);
   }
 
-  function setStatus(type, html) {
-    const el = document.getElementById('statusBar');
-    const cls = type === 'ok' ? 'status-ok' : type === 'err' ? 'status-err' : 'status-info';
-    el.innerHTML = `<span class="${cls}">${html}</span>`;
+  function clearStats() {
+    ['statLines','statChars','statHeadings','statBullets'].forEach(id => {
+      const el = document.getElementById(id);
+      if (id === 'statHeadings') el.textContent = '見出し 0';
+      else if (id === 'statBullets') el.textContent = '箇条書き 0';
+      else el.textContent = '—';
+    });
   }
 
-  document.getElementById('btnFormat').addEventListener('click', doFormat);
+  function setStatus(type, text) {
+    const el = document.getElementById('statusMsg');
+    el.className = 'status-msg' + (type === 'ok' ? ' ok' : type === 'err' ? ' err' : '');
+    el.textContent = text;
+  }
 
-  // Auto-format on input (debounced)
-  let debTimer;
+  // Input stats (live)
   document.getElementById('inputArea').addEventListener('input', () => {
+    const val = document.getElementById('inputArea').value;
+    const lines = val ? val.split('\n').length : 0;
+    const chars = val.replace(/\n/g, '').length;
+    document.getElementById('inputStats').textContent = lines > 0 ? `${lines} 行 · ${chars} 字` : '';
     clearTimeout(debTimer);
     debTimer = setTimeout(doFormat, 500);
   });
+
+  let debTimer;
+  document.getElementById('btnFormat').addEventListener('click', doFormat);
 
   // ===== Simple Markdown renderer =====
   function renderMarkdown(md) {
     let html = escHtml(md);
 
-    // Code blocks
     html = html.replace(/```([^`\n]*)\n([\s\S]*?)```/gm, (_, lang, code) =>
       `<pre><code>${code.trimEnd()}</code></pre>`
     );
-    // Inline code
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    // Bold
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    // Italic
+    html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    // HR
     html = html.replace(/^---$/gm, '<hr>');
-    // Blockquote
     html = html.replace(/^&gt; (.+)/gm, '<blockquote>$1</blockquote>');
-    // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-    // Headings
     html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
-    html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
-    html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
-    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/^##### (.+)$/gm,  '<h5>$1</h5>');
+    html = html.replace(/^#### (.+)$/gm,   '<h4>$1</h4>');
+    html = html.replace(/^### (.+)$/gm,    '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm,     '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm,      '<h1>$1</h1>');
 
-    // Lists (simple)
     const listLines = html.split('\n');
     const out = [];
     let inUl = false, inOl = false;
     for (const line of listLines) {
       if (/^- (.+)/.test(line)) {
         if (!inUl) { out.push('<ul>'); inUl = true; }
-        if (inOl) { out.push('</ol>'); inOl = false; }
+        if (inOl)  { out.push('</ol>'); inOl = false; }
         out.push('<li>' + line.replace(/^- /, '') + '</li>');
       } else if (/^\d+\. (.+)/.test(line)) {
         if (!inOl) { out.push('<ol>'); inOl = true; }
-        if (inUl) { out.push('</ul>'); inUl = false; }
+        if (inUl)  { out.push('</ul>'); inUl = false; }
         out.push('<li>' + line.replace(/^\d+\. /, '') + '</li>');
       } else {
         if (inUl) { out.push('</ul>'); inUl = false; }
@@ -780,32 +933,46 @@
   }
 
   function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
-  // ===== Copy =====
-  document.getElementById('btnCopy').addEventListener('click', async () => {
+  // ===== Copy (header) =====
+  document.getElementById('btnCopyHeader').addEventListener('click', async () => {
     if (!lastFormatted) return;
     try {
       await navigator.clipboard.writeText(lastFormatted);
-      const btn = document.getElementById('btnCopy');
+      const btn = document.getElementById('btnCopyHeader');
       btn.classList.add('copied');
       btn.textContent = '✓ コピー完了';
-      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '&#128203; コピー'; }, 1800);
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.5"/></svg>コピー`;
+      }, 1800);
     } catch {
       setStatus('err', 'クリップボードへのコピーに失敗しました');
     }
   });
 
+  // ===== Copy HTML =====
   document.getElementById('btnCopyHtml').addEventListener('click', async () => {
     if (!lastFormatted) return;
     const html = renderMarkdown(lastFormatted);
     try {
       await navigator.clipboard.writeText(html);
       const btn = document.getElementById('btnCopyHtml');
-      btn.classList.add('copied');
-      btn.textContent = '✓ HTMLコピー完了';
-      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '&#128203; HTML コピー'; }, 1800);
+      const orig = btn.textContent;
+      btn.textContent = '✓ 完了';
+      btn.style.borderColor = 'var(--success)';
+      btn.style.color = 'var(--success)';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 1800);
     } catch {
       setStatus('err', 'クリップボードへのコピーに失敗しました');
     }
@@ -826,9 +993,12 @@
   // ===== Clear =====
   document.getElementById('btnClear').addEventListener('click', () => {
     document.getElementById('inputArea').value = '';
-    document.getElementById('outputRaw').textContent = '整形結果がここに表示されます';
+    const rawEl = document.getElementById('outputRaw');
+    rawEl.innerHTML = '<span class="placeholder">整形結果がここに表示されます</span>';
     document.getElementById('outputPreview').innerHTML = '';
+    document.getElementById('inputStats').textContent = '';
     lastFormatted = '';
+    clearStats();
     setStatus('info', 'クリアしました');
   });
 
@@ -846,13 +1016,11 @@
   // ===== Insert toolbar =====
   document.querySelectorAll('.ins-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const ta = document.getElementById('inputArea');
+      const ta  = document.getElementById('inputArea');
       const ins = btn.dataset.insert;
       const start = ta.selectionStart;
       const end   = ta.selectionEnd;
-      const before = ta.value.slice(0, start);
-      const after  = ta.value.slice(end);
-      ta.value = before + ins + after;
+      ta.value = ta.value.slice(0, start) + ins + ta.value.slice(end);
       const pos = start + ins.length;
       ta.setSelectionRange(pos, pos);
       ta.focus();
