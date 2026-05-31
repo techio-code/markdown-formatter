@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown 整形ツール | techio-code</title>
+  <meta name="description" content="テキストを貼り付けるだけで見出し・箇条書きを自動検出しMarkdownに整形。Zenn/note/GitHub対応・行末スペース削除・リアルタイムプレビュー。">
+  <meta property="og:title" content="Markdown 整形ツール">
+  <meta property="og:description" content="テキスト → Markdown 自動整形。Zenn/note対応・行末スペース削除・1クリックコピー。">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ===== Design System: Mode B The Row ===== */
+    :root {
+      --row-paper:   #F5F4F0;
+      --row-ink:     #1C1C1C;
+      --row-tan:     #C8B89E;
+      --row-stone:   #6B6B66;
+      --row-coffee:  #8B6F47;
+      --primary:     #6C63FF;
+      --success:     #00D4AA;
+      --error:       #FF5252;
+      --warning:     #FBA32A;
+      --font-sans:   'Noto Sans JP', sans-serif;
+      --font-mono:   'JetBrains Mono', monospace;
+      --space-xs:  4px;
+      --space-sm:  8px;
+      --space-md:  16px;
+      --space-lg:  24px;
+      --space-xl:  32px;
+      --space-2xl: 48px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--row-paper);
+      color: var(--row-ink);
+      min-height: 100vh;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--row-tan);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-md);
+      background: rgba(245,244,240,0.9);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.05em; }
+    header .subtitle { font-size: 13px; color: var(--row-stone); letter-spacing: 0.03em; }
+
+    /* Main */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-2xl) var(--space-xl);
+    }
+
+    /* Top controls */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-lg);
+    }
+
+    /* Tab group: Markdown raw / Preview */
+    .tab-group {
+      display: flex;
+      background: white;
+      border: 1.5px solid var(--row-tan);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .tab-btn {
+      padding: 0 var(--space-md);
+      height: 40px;
+      border: none;
+      background: transparent;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--row-stone);
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--row-ink);
+      color: white;
+    }
+    .tab-btn:not(.active):hover { background: var(--row-paper); }
+
+    /* Action buttons */
+    .btn-format {
+      height: 40px;
+      padding: 0 var(--space-lg);
+      background: var(--row-ink);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-format:hover { background: var(--row-coffee); transform: translateY(-1px); }
+
+    .btn-ghost {
+      height: 40px;
+      padding: 0 var(--space-md);
+      background: transparent;
+      color: var(--row-stone);
+      border: 1.5px solid var(--row-tan);
+      border-radius: 8px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-ghost:hover { border-color: var(--row-ink); color: var(--row-ink); }
+
+    /* Options */
+    .options-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+      align-items: center;
+    }
+    .opt-check {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--row-stone);
+      cursor: pointer;
+    }
+    .opt-check input[type="checkbox"] { cursor: pointer; accent-color: var(--primary); }
+    .opt-label {
+      font-size: 13px;
+      color: var(--row-stone);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .opt-label select {
+      height: 32px;
+      padding: 0 var(--space-sm);
+      border: 1.5px solid var(--row-tan);
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      background: white;
+      color: var(--row-ink);
+    }
+
+    /* Editor grid */
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xl);
+    }
+    @media (max-width: 720px) {
+      .editor-grid { grid-template-columns: 1fr; }
+      main { padding: var(--space-xl) var(--space-md); }
+      header { padding: var(--space-md); }
+    }
+
+    .pane-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--row-stone);
+      margin-bottom: var(--space-sm);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .pane-badge {
+      background: rgba(108,99,255,0.1);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* Input textarea */
+    .input-pane {
+      border: 2px dashed var(--row-tan);
+      border-radius: 12px;
+      background: white;
+      transition: border-color 0.2s;
+    }
+    .input-pane:focus-within { border-color: var(--primary); }
+    .input-pane textarea {
+      width: 100%;
+      min-height: 400px;
+      padding: var(--space-md);
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.9;
+      color: var(--row-ink);
+      resize: vertical;
+    }
+    .input-pane textarea::placeholder { color: var(--row-tan); }
+
+    /* Output panel */
+    .output-panel {
+      border: 1.5px solid var(--row-tan);
+      border-radius: 12px;
+      background: white;
+      min-height: 400px;
+      overflow: hidden;
+    }
+    /* Raw Markdown view */
+    .output-raw {
+      display: block;
+      padding: var(--space-md);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--row-ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 400px;
+    }
+    /* Preview view */
+    .output-preview {
+      display: none;
+      padding: var(--space-lg);
+      min-height: 400px;
+    }
+    .output-preview.active, .output-raw.active { display: block; }
+    /* Markdown render styles */
+    .output-preview h1 {
+      font-size: 28px; font-weight: 700; margin: 24px 0 12px;
+      border-bottom: 2px solid var(--row-tan); padding-bottom: 8px;
+    }
+    .output-preview h2 {
+      font-size: 22px; font-weight: 700; margin: 20px 0 10px;
+      border-bottom: 1px solid var(--row-tan); padding-bottom: 6px;
+    }
+    .output-preview h3 { font-size: 18px; font-weight: 700; margin: 16px 0 8px; }
+    .output-preview h4 { font-size: 16px; font-weight: 600; margin: 12px 0 6px; }
+    .output-preview p { margin: 8px 0; line-height: 1.9; }
+    .output-preview ul, .output-preview ol { margin: 8px 0 8px 24px; }
+    .output-preview li { margin: 4px 0; line-height: 1.8; }
+    .output-preview code {
+      background: var(--row-paper);
+      border: 1px solid var(--row-tan);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+    .output-preview pre {
+      background: var(--row-paper);
+      border: 1px solid var(--row-tan);
+      border-radius: 8px;
+      padding: var(--space-md);
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .output-preview pre code { background: none; border: none; padding: 0; }
+    .output-preview blockquote {
+      border-left: 3px solid var(--row-tan);
+      margin: 12px 0;
+      padding: 4px 16px;
+      color: var(--row-stone);
+    }
+    .output-preview hr {
+      border: none; border-top: 1px solid var(--row-tan); margin: 20px 0;
+    }
+    .output-preview strong { font-weight: 700; }
+    .output-preview em { font-style: italic; }
+    .output-preview a { color: var(--primary); text-decoration: underline; }
+
+    /* Action row */
+    .pane-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      margin-top: var(--space-sm);
+    }
+    .btn-action {
+      height: 36px;
+      padding: 0 var(--space-md);
+      background: white;
+      color: var(--row-stone);
+      border: 1.5px solid var(--row-tan);
+      border-radius: 8px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-action:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-action.copied { background: var(--success); color: white; border-color: var(--success); }
+
+    /* Insert toolbar */
+    .insert-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      padding: var(--space-sm) var(--space-md);
+      border-top: 1px solid var(--row-paper);
+      background: #fafaf8;
+      border-radius: 0 0 10px 10px;
+    }
+    .ins-btn {
+      height: 30px;
+      padding: 0 10px;
+      background: white;
+      border: 1px solid var(--row-tan);
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--row-stone);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .ins-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* Status */
+    .status-bar {
+      margin-top: var(--space-md);
+      min-height: 26px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+    .status-ok   { color: var(--success); font-weight: 600; }
+    .status-err  { color: var(--error);   font-weight: 600; }
+    .status-info { color: var(--row-stone); }
+
+    /* Stats chips */
+    .stat-chip {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 8px;
+      background: rgba(108,99,255,0.08);
+      color: var(--primary);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Diff highlight */
+    .diff-section {
+      margin-top: var(--space-2xl);
+      border-top: 1px solid var(--row-tan);
+      padding-top: var(--space-xl);
+    }
+    .diff-section h2 {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--row-stone); margin-bottom: var(--space-md);
+    }
+
+    footer {
+      text-align: center;
+      padding: var(--space-2xl) var(--space-xl) var(--space-xl);
+      font-size: 12px;
+      color: var(--row-tan);
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Markdown Formatter</h1>
+  <span class="subtitle">by techio-code — Zenn / note / GitHub 対応</span>
+</header>
+
+<main>
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn-format" id="btnFormat">整形する</button>
+    <div class="tab-group">
+      <button class="tab-btn active" data-view="raw">Markdown</button>
+      <button class="tab-btn" data-view="preview">プレビュー</button>
+    </div>
+    <button class="btn-ghost" id="btnClear">クリア</button>
+    <button class="btn-ghost" id="btnExample">サンプルを入力</button>
+  </div>
+
+  <!-- Options -->
+  <div class="options-row">
+    <label class="opt-check">
+      <input type="checkbox" id="chkTrimTrail" checked>
+      行末スペース削除（Zenn 改行バグ対策）
+    </label>
+    <label class="opt-check">
+      <input type="checkbox" id="chkHeading" checked>
+      見出し自動検出（番号付き行 → ## に変換）
+    </label>
+    <label class="opt-check">
+      <input type="checkbox" id="chkBullet" checked>
+      箇条書き自動検出（・ □ ▶ → - に変換）
+    </label>
+    <label class="opt-check">
+      <input type="checkbox" id="chkBlankLines" checked>
+      連続空行を1行に圧縮
+    </label>
+    <label class="opt-check">
+      <input type="checkbox" id="chkAutoLink" checked>
+      URLを自動リンク化
+    </label>
+    <label class="opt-label">
+      見出しレベル:
+      <select id="selHeadingLevel">
+        <option value="2">## (H2) デフォルト</option>
+        <option value="1"># (H1)</option>
+        <option value="3">### (H3)</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- Editor grid -->
+  <div class="editor-grid">
+    <!-- Input -->
+    <div>
+      <div class="pane-label">入力 <span class="pane-badge">プレーンテキスト</span></div>
+      <div class="input-pane">
+        <textarea id="inputArea" placeholder="ここにテキストをペースト&#10;&#10;例：&#10;1. はじめに&#10;・概要説明&#10;・背景と目的&#10;2. 本題&#10;　内容をここに書く"></textarea>
+        <div class="insert-toolbar">
+          <button class="ins-btn" data-insert="# ">H1</button>
+          <button class="ins-btn" data-insert="## ">H2</button>
+          <button class="ins-btn" data-insert="### ">H3</button>
+          <button class="ins-btn" data-insert="- ">- リスト</button>
+          <button class="ins-btn" data-insert="1. ">1. 番号</button>
+          <button class="ins-btn" data-insert="**太字**">**B**</button>
+          <button class="ins-btn" data-insert="*斜体*">*I*</button>
+          <button class="ins-btn" data-insert="`コード`">`code`</button>
+          <button class="ins-btn" data-insert="```\n\n```">```block</button>
+          <button class="ins-btn" data-insert="> ">引用</button>
+          <button class="ins-btn" data-insert="---">---</button>
+          <button class="ins-btn" data-insert="[テキスト](URL)">[link]</button>
+        </div>
+      </div>
+      <div class="pane-actions">
+        <button class="btn-action" id="btnPaste">&#128203; ペースト</button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div>
+      <div class="pane-label">出力 <span class="pane-badge" id="viewBadge">Markdown</span></div>
+      <div class="output-panel">
+        <pre class="output-raw active" id="outputRaw">整形結果がここに表示されます</pre>
+        <div class="output-preview" id="outputPreview"></div>
+      </div>
+      <div class="pane-actions">
+        <button class="btn-action" id="btnCopy">&#128203; コピー</button>
+        <button class="btn-action" id="btnCopyHtml">&#128203; HTML コピー</button>
+        <button class="btn-action" id="btnDownload">&#11015; .md 保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar" id="statusBar">
+    <span class="status-info">テキストを入力して「整形する」を押してください（リアルタイム自動整形あり）</span>
+  </div>
+</main>
+
+<footer>techio-code — Markdown Formatter v1.0</footer>
+
+<script>
+  // ===== State =====
+  let currentView = 'raw';
+  let lastFormatted = '';
+
+  // ===== View tab =====
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentView = btn.dataset.view;
+      document.getElementById('viewBadge').textContent = currentView === 'raw' ? 'Markdown' : 'Preview';
+      updateOutputView();
+    });
+  });
+
+  function updateOutputView() {
+    const raw = document.getElementById('outputRaw');
+    const prev = document.getElementById('outputPreview');
+    if (currentView === 'raw') {
+      raw.classList.add('active');
+      prev.classList.remove('active');
+    } else {
+      raw.classList.remove('active');
+      prev.classList.add('active');
+      if (lastFormatted) {
+        prev.innerHTML = renderMarkdown(lastFormatted);
+      }
+    }
+  }
+
+  // ===== Format core =====
+  function formatMarkdown(input) {
+    const trimTrail = document.getElementById('chkTrimTrail').checked;
+    const doHeading = document.getElementById('chkHeading').checked;
+    const doBullet  = document.getElementById('chkBullet').checked;
+    const doBlank   = document.getElementById('chkBlankLines').checked;
+    const doLink    = document.getElementById('chkAutoLink').checked;
+    const headLevel = '#'.repeat(parseInt(document.getElementById('selHeadingLevel').value));
+
+    let lines = input.split(/\r\n|\r|\n/);
+
+    lines = lines.map(line => {
+      // 1. 行末スペース削除
+      if (trimTrail) line = line.trimEnd();
+
+      // 2. 全角スペース・タブをインデント検出用に扱う
+      // (先頭の全角スペースは除去してインデントとして扱う)
+      const leadFull = line.match(/^[　\s]+/);
+      if (leadFull) {
+        line = line.trimStart();
+      }
+
+      // 3. 箇条書き変換: ・ □ ◆ ▶ ▷ ➡ ✅ ● ○ など → -
+      if (doBullet) {
+        line = line.replace(/^[・●○□◆◇▶▷➡✅✔︎✓➤▸▹►]+\s*/, '- ');
+        // 全角ダッシュ・ハイフン → -
+        line = line.replace(/^[－ーｰ—–]\s+/, '- ');
+      }
+
+      // 4. 番号付き見出し検出: "1. 〇〇" "（1）〇〇" "１. 〇〇" 行 → ## 見出し
+      if (doHeading) {
+        // 数字ドット形式: "1. text" (まだリスト変換されていないもの)
+        // 括弧形式: (1) text / （1）text
+        // 番号のみ行: "1 text" (空白で始まっていない・数字+スペース+文字)
+        const numDot = line.match(/^(\d+)[.．。]\s+(.+)/);
+        const numParen = line.match(/^[（(](\d+)[）)]\s*(.+)/);
+        // 全角数字
+        const zenNum = line.match(/^[１２３４５６７８９０]+[.．。、]\s*(.+)/);
+
+        if (numDot && !line.startsWith('- ')) {
+          line = `${headLevel} ${numDot[2]}`;
+        } else if (numParen) {
+          line = `${headLevel} ${numParen[2]}`;
+        } else if (zenNum) {
+          line = `${headLevel} ${zenNum[1]}`;
+        }
+      }
+
+      // 5. URLを自動リンク化（既に []() 形式でないもの）
+      if (doLink) {
+        line = line.replace(
+          /(?<!\()(?<!\[)(https?:\/\/[^\s\)]+)/g,
+          (url) => `[${url}](${url})`
+        );
+      }
+
+      return line;
+    });
+
+    // 6. 連続空行を1行に圧縮
+    if (doBlank) {
+      const compressed = [];
+      let blankCount = 0;
+      for (const line of lines) {
+        if (line.trim() === '') {
+          blankCount++;
+          if (blankCount === 1) compressed.push('');
+        } else {
+          blankCount = 0;
+          compressed.push(line);
+        }
+      }
+      lines = compressed;
+    }
+
+    // 7. 先頭・末尾の空行除去
+    while (lines.length > 0 && lines[0].trim() === '') lines.shift();
+    while (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+    return lines.join('\n');
+  }
+
+  function doFormat() {
+    const input = document.getElementById('inputArea').value;
+    if (!input.trim()) {
+      setStatus('info', 'テキストを入力してください');
+      return;
+    }
+    const result = formatMarkdown(input);
+    lastFormatted = result;
+    document.getElementById('outputRaw').textContent = result;
+    if (currentView === 'preview') {
+      document.getElementById('outputPreview').innerHTML = renderMarkdown(result);
+    }
+
+    // Stats
+    const lines = result.split('\n').length;
+    const chars = result.replace(/\n/g, '').length;
+    const headings = (result.match(/^#{1,6} /gm) || []).length;
+    const bullets  = (result.match(/^- /gm) || []).length;
+    setStatus('ok',
+      `整形完了 ` +
+      `<span class="stat-chip">${lines} 行</span> ` +
+      `<span class="stat-chip">${chars} 字</span> ` +
+      `<span class="stat-chip">見出し ${headings}</span> ` +
+      `<span class="stat-chip">箇条書き ${bullets}</span>`
+    );
+  }
+
+  function setStatus(type, html) {
+    const el = document.getElementById('statusBar');
+    const cls = type === 'ok' ? 'status-ok' : type === 'err' ? 'status-err' : 'status-info';
+    el.innerHTML = `<span class="${cls}">${html}</span>`;
+  }
+
+  document.getElementById('btnFormat').addEventListener('click', doFormat);
+
+  // Auto-format on input (debounced)
+  let debTimer;
+  document.getElementById('inputArea').addEventListener('input', () => {
+    clearTimeout(debTimer);
+    debTimer = setTimeout(doFormat, 500);
+  });
+
+  // ===== Simple Markdown renderer =====
+  function renderMarkdown(md) {
+    let html = escHtml(md);
+
+    // Code blocks
+    html = html.replace(/```([^`\n]*)\n([\s\S]*?)```/gm, (_, lang, code) =>
+      `<pre><code>${code.trimEnd()}</code></pre>`
+    );
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Bold
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    // HR
+    html = html.replace(/^---$/gm, '<hr>');
+    // Blockquote
+    html = html.replace(/^&gt; (.+)/gm, '<blockquote>$1</blockquote>');
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    // Headings
+    html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
+    html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
+    html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+    // Lists (simple)
+    const listLines = html.split('\n');
+    const out = [];
+    let inUl = false, inOl = false;
+    for (const line of listLines) {
+      if (/^- (.+)/.test(line)) {
+        if (!inUl) { out.push('<ul>'); inUl = true; }
+        if (inOl) { out.push('</ol>'); inOl = false; }
+        out.push('<li>' + line.replace(/^- /, '') + '</li>');
+      } else if (/^\d+\. (.+)/.test(line)) {
+        if (!inOl) { out.push('<ol>'); inOl = true; }
+        if (inUl) { out.push('</ul>'); inUl = false; }
+        out.push('<li>' + line.replace(/^\d+\. /, '') + '</li>');
+      } else {
+        if (inUl) { out.push('</ul>'); inUl = false; }
+        if (inOl) { out.push('</ol>'); inOl = false; }
+        if (line.trim() && !line.startsWith('<')) {
+          out.push('<p>' + line + '</p>');
+        } else {
+          out.push(line);
+        }
+      }
+    }
+    if (inUl) out.push('</ul>');
+    if (inOl) out.push('</ol>');
+
+    return out.join('\n');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ===== Copy =====
+  document.getElementById('btnCopy').addEventListener('click', async () => {
+    if (!lastFormatted) return;
+    try {
+      await navigator.clipboard.writeText(lastFormatted);
+      const btn = document.getElementById('btnCopy');
+      btn.classList.add('copied');
+      btn.textContent = '✓ コピー完了';
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '&#128203; コピー'; }, 1800);
+    } catch {
+      setStatus('err', 'クリップボードへのコピーに失敗しました');
+    }
+  });
+
+  document.getElementById('btnCopyHtml').addEventListener('click', async () => {
+    if (!lastFormatted) return;
+    const html = renderMarkdown(lastFormatted);
+    try {
+      await navigator.clipboard.writeText(html);
+      const btn = document.getElementById('btnCopyHtml');
+      btn.classList.add('copied');
+      btn.textContent = '✓ HTMLコピー完了';
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '&#128203; HTML コピー'; }, 1800);
+    } catch {
+      setStatus('err', 'クリップボードへのコピーに失敗しました');
+    }
+  });
+
+  // ===== Download =====
+  document.getElementById('btnDownload').addEventListener('click', () => {
+    if (!lastFormatted) return;
+    const blob = new Blob([lastFormatted], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'formatted.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ===== Clear =====
+  document.getElementById('btnClear').addEventListener('click', () => {
+    document.getElementById('inputArea').value = '';
+    document.getElementById('outputRaw').textContent = '整形結果がここに表示されます';
+    document.getElementById('outputPreview').innerHTML = '';
+    lastFormatted = '';
+    setStatus('info', 'クリアしました');
+  });
+
+  // ===== Paste =====
+  document.getElementById('btnPaste').addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      document.getElementById('inputArea').value = text;
+      doFormat();
+    } catch {
+      setStatus('err', 'クリップボードの読み取りに失敗しました');
+    }
+  });
+
+  // ===== Insert toolbar =====
+  document.querySelectorAll('.ins-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ta = document.getElementById('inputArea');
+      const ins = btn.dataset.insert;
+      const start = ta.selectionStart;
+      const end   = ta.selectionEnd;
+      const before = ta.value.slice(0, start);
+      const after  = ta.value.slice(end);
+      ta.value = before + ins + after;
+      const pos = start + ins.length;
+      ta.setSelectionRange(pos, pos);
+      ta.focus();
+      doFormat();
+    });
+  });
+
+  // ===== Sample =====
+  const SAMPLE = `チームてちおのAI活用事例
+
+1. はじめに
+・このドキュメントはサンプルです
+・Markdown整形ツールの動作確認用
+
+2. 主な機能
+（1）見出し自動検出
+番号付きの行が自動でMarkdown見出しに変換されます。
+
+（2）箇条書き変換
+□ ビュレット記号を統一
+▶ ・や□など様々な記号をサポート
+✅ チェックリストも対応
+
+3. 使い方
+テキストをペーストして「整形する」を押すだけです。
+URLは自動でリンクになります: https://github.com/techio-code
+
+4. まとめ
+AI時代の情報整理に役立ててください。`;
+
+  document.getElementById('btnExample').addEventListener('click', () => {
+    document.getElementById('inputArea').value = SAMPLE;
+    doFormat();
+  });
+
+  // ===== Init =====
+  updateOutputView();
+</script>
+</body>
+</html>
